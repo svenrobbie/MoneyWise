@@ -18,6 +18,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.moneywise.data.SalaryProfile
 
+enum class ProfileType(val label: String, val description: String) {
+    STUDENT("Student", "Ik studeer nog"),
+    ADULT("Volwassene", "Ik werk fulltime")
+}
+
+enum class Level(val label: String, val description: String) {
+    BEGINNER("Beginner", "Nog niet eerder gespaard of belegd"),
+    INTERMEDIATE("Gemiddeld", "Spaar al, maar beleg nog niet"),
+    ADVANCED("Gevorderd", "Beleg al actief")
+}
+
 data class AllocationResult(
     val savePercent: Double,
     val investPercent: Double,

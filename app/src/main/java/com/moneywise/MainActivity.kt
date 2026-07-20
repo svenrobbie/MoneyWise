@@ -177,11 +177,6 @@ fun MoneyWiseApp() {
                     portfolioViewModel = portfolioViewModel
                 )
             }
-            composable("advice") {
-                AdviceScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
             composable("allocation") {
                 AllocationScreen(
                     profile = viewModel.profile.collectAsState().value,

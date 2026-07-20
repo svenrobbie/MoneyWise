@@ -159,12 +159,12 @@ fun HomeScreen(
                     Text("Portefeuille")
                 }
                 Button(
-                    onClick = { navController.navigate("advice") },
+                    onClick = { navController.navigate("allocation") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Advies")
+                    Text("Verdeling")
                 }
             }
         }
