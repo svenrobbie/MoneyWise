@@ -182,7 +182,7 @@ fun WorkTimeScreen(
 
                         val ratio = price / profile.hourlyWage
                         Text(
-                            text = "Dit is ${"%.1f".format(ratio)}x je uurloon (${Calculators.formatCurrency(profile.hourlyWage, profile.currency, showDecimals = false)}/uur)",
+                            text = "Dit is ${"%.1f".format(ratio)}x je uurloon (${Calculators.formatCurrency(profile.hourlyWage, profile.currency, showDecimals = true)}/uur)",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -234,7 +234,7 @@ fun WorkTimeScreen(
                         if (profile.yearsUntilRetirement > 0) {
                             HorizontalDivider()
 
-                            val investmentResult = remember(price, profile) {
+                            val investResult = remember(price, profile) {
                                 Calculators.calculateInvestment(
                                     initialAmount = price,
                                     monthlyContribution = 0.0,
@@ -242,24 +242,72 @@ fun WorkTimeScreen(
                                     years = profile.yearsUntilRetirement
                                 )
                             }
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val saveResult = remember(price, profile) {
+                                Calculators.calculateSavings(
+                                    initialAmount = price,
+                                    monthlyContribution = 0.0,
+                                    annualRate = 1.3,
+                                    years = profile.yearsUntilRetirement
+                                )
+                            }
+                            val difference = investResult.finalAmount - saveResult.finalAmount
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    text = "Als je dit geld zou sparen op je leeftijd (${profile.age} jaar), heb je op je ${profile.retirementAge}e...",
+                                    text = "Als je dit bedrag zou laten staan tot je ${profile.retirementAge}e...",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                                Text(
-                                    text = Calculators.formatCurrency(investmentResult.finalAmount, profile.currency),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = " (${Calculators.formatCurrency(investmentResult.totalGain, profile.currency)} winst na ${profile.yearsUntilRetirement} jaar bij 7% rendement)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Sparen (1,3%)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = Calculators.formatCurrency(saveResult.finalAmount, profile.currency),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Beleggen (7%)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = Calculators.formatCurrency(investResult.finalAmount, profile.currency),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Verschil",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = Calculators.formatCurrency(difference, profile.currency),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
                             }
                         }
                     }

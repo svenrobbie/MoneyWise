@@ -33,7 +33,7 @@ fun SavingsScreen(
 
     var initialText by remember { mutableStateOf("0") }
     var monthlyText by remember { mutableStateOf("0") }
-    var rateText by remember { mutableStateOf("2.5") }
+    var rateText by remember { mutableStateOf("1.3") }
     var years by remember { mutableIntStateOf(30) }
     var goalText by remember { mutableStateOf("") }
 

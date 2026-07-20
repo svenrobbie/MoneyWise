@@ -37,10 +37,10 @@ data class TaxConfig(
         return calculateTax(annualIncome) / annualIncome
     }
 
-    fun calculateNetMonthly(annualIncome: Double): Double {
+    fun calculateNetMonthly(annualIncome: Double, extras: Double = 0.0): Double {
         val annualTax = calculateTax(annualIncome)
         val socialSecurity = annualIncome * socialSecurityRate
-        return (annualIncome - annualTax - socialSecurity) / 12
+        return (annualIncome - annualTax - socialSecurity + extras) / 12
     }
 
     companion object {

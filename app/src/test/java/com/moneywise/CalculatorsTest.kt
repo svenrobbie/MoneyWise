@@ -171,4 +171,37 @@ class SalaryProfileTest {
         val profile = SalaryProfile(hourlyWage = 0.0, hoursPerWeek = 40.0)
         assertEquals(0.0, profile.netHourly, 0.01)
     }
+
+    @Test
+    fun `holiday allowance is excluded when toggle is off`() {
+        val with = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 40.0, holidayAllowancePercent = 8.0, includeHolidayAllowance = true)
+        val without = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 40.0, holidayAllowancePercent = 8.0, includeHolidayAllowance = false)
+        assertTrue("With HA should be higher", with.totalAnnualGross > without.totalAnnualGross)
+    }
+
+    @Test
+    fun `atv and verlof increase annual gross`() {
+        val base = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 40.0)
+        val withAtv = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 40.0, atvPercent = 5.0, includeAtv = true)
+        val withVerlof = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 40.0, verlofPercent = 3.0, includeVerlof = true)
+        assertTrue("ATV should increase", withAtv.totalAnnualGross > base.totalAnnualGross)
+        assertTrue("Verlof should increase", withVerlof.totalAnnualGross > base.totalAnnualGross)
+    }
+
+    @Test
+    fun `premiums excluded when toggles are off`() {
+        val profile = SalaryProfile(
+            hourlyWage = 20.0,
+            hoursPerWeek = 40.0,
+            overtimePercent = 50.0,
+            weekendPercent = 25.0,
+            nightPercent = 50.0,
+            shiftPercent = 30.0,
+            includeOvertime = false,
+            includeWeekend = false,
+            includeNight = false,
+            includeShift = false
+        )
+        assertEquals("Effective wage should equal base", 20.0, profile.effectiveHourlyWage, 0.01)
+    }
 }

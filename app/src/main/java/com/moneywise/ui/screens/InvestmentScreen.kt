@@ -52,7 +52,7 @@ fun InvestmentScreen(
     }
 
     val savingsResult = remember(parsedStart, parsedMonthly, parsedYears) {
-        Calculators.calculateInvestment(parsedStart, parsedMonthly, 2.5, parsedYears, 0.0)
+        Calculators.calculateInvestment(parsedStart, parsedMonthly, 1.3, parsedYears, 0.0)
     }
 
     val multiplier = if (result.totalContributed > 0) result.finalAmount / result.totalContributed else 0.0
@@ -161,6 +161,37 @@ fun InvestmentScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Nominaal vs Reëel",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            text = "Nominaal: het daadwerkelijke bedrag op je rekening, zonder inflatie-correctie.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            text = "Reëel: de koopkracht van dat bedrag, gecorrigeerd voor inflatie. Wat je er daadwerkelijk voor kunt kopen.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+
+            if (hasInput) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
@@ -231,7 +262,7 @@ fun InvestmentScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Bij sparen met 2,5% rente zou je na $parsedYears jaar ${Calculators.formatCurrency(savingsResult.finalAmount, currency)} hebben",
+                            text = "Bij sparen met 1,3% rente zou je na $parsedYears jaar ${Calculators.formatCurrency(savingsResult.finalAmount, currency)} hebben",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         val difference = result.finalAmount - savingsResult.finalAmount
@@ -240,7 +271,7 @@ fun InvestmentScreen(
                             value = Calculators.formatCurrency(result.finalAmount, currency)
                         )
                         ResultRow(
-                            label = "Sparen (2,5%)",
+                            label = "Sparen (1,3%)",
                             value = Calculators.formatCurrency(savingsResult.finalAmount, currency)
                         )
                         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))

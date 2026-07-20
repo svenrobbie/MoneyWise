@@ -49,6 +49,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 val bottomNavItems = listOf(
     Screen.Home,
+    Screen.Salary,
     Screen.WorkTime,
     Screen.Savings,
     Screen.Investment,
