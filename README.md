@@ -27,16 +27,42 @@ Slimme salariscalculator - zie wat je geld echt kost in werktijd.
 
 ### Beleggen Simulator
 - Projectie van je beleggingen met verwacht rendement
-- **Nominaal vs Reëel** - Verschil tussen daadwerkelijk bedrag en koopkracht
+- **Nominaal vs Reel** - Verschil tussen daadwerkelijk bedrag en koopkracht
 - Vergelijking met sparen (1,3% rente)
-- Interactieve grafiek met nominaal, reëel en ingelegd bedrag
+- Interactieve grafiek met nominaal, reeel en ingelegd bedrag
+
+### Portefeuille
+- **Aandelen beheren** - Voeg aandelen/ETFs toe met symbool, naam, aantal en aankoopprijs
+- **Bij kopen** - Koop extra eenheden, gemiddelde aankoopprijs wordt automatisch berekend
+- **Verkopen** - Verkoop (een deel van) je aandelen, opbrengst gaat naar je portemonnee
+- **Portemonnee** - Houd saldo bij op je exchange (storten / opnemen)
+- **Doelverdeling** - Stel per aandeel een doelpercentage in
+- **Rebalancing advies** - Bereken wat je moet kopen op basis van je maandbedrag en doelverdeling
+- **Projectie** - Zie hoe je portefeuille groeit over X jaar bij diverse rendementen
+
+### Advies
+- **Doelverdeling calculator** - Bereken de optimale verdeling op basis van je salaris
+- Visueel overzicht van aanbevolen allocatie
+
+### Allocatie
+- **Netto verdeling** - Visueel overzicht van hoe je netto-inkomen verdeeld is
+- Overzicht van vaste lasten, sparen, beleggen en overig
+
+### Data Beheer
+- **Exporteren** - Sla je volledige portefeuille op als JSON-bestand
+- **Importeren** - Laad een eerder geexporteerd bestand (met bevestigingsdialog)
+- Bestandsformaat: JSON met versienummer en timestamp voor toekomstbestendigheid
+
+### Notificaties
+- **Herinnering** - Automatische dagelijkse melding als je je maandelijkse investering nog niet hebt gedaan
 
 ### Overig
 - **12 valuta's** - EUR, USD, GBP, SEK, NOK, DKK, CHF, PLN, TRY, BRL, INR, JPY
-- **6 belastingregio's** - Nederland, België, Duitsland, VK, Zweden + aangepast
+- **6 belastingregio's** - Nederland, Belgie, Duitsland, VK, Zweden + aangepast
 - **Pensioen info** - Jaren tot pensioen op alle schermen
 - **Bottom navigatie** - Home, Salaris, Werktijd, Sparen, Beleggen
 - **Logo** - Eigen MoneyWise launcher icon
+- **Profile screen** - Over MoneyWise, GitHub link, data export/import
 
 ## Tech Stack
 
@@ -46,6 +72,7 @@ Slimme salariscalculator - zie wat je geld echt kost in werktijd.
 - DataStore Preferences (lokale opslag)
 - Navigation Compose
 - kotlinx.serialization
+- WorkManager (notificaties)
 
 ## Aan de slag
 
@@ -55,6 +82,14 @@ Open in Android Studio en draai op emulator of apparaat (minSdk 26+).
 ./gradlew assembleDebug
 ```
 
+### Release APK bouwen
+
+```bash
+./gradlew assembleRelease
+```
+
+De signed release APK staat in `app/build/outputs/apk/release/app-release.apk`.
+
 ## Projectstructuur
 
 ```
@@ -62,10 +97,12 @@ app/src/main/java/com/moneywise/
 ├── data/
 │   ├── SalaryProfile.kt      Salarismodel met alle velden
 │   ├── TaxConfig.kt           Belastingberekening per regio
+│   ├── Portfolio.kt           Portefeuille model (aandelen + wallet)
 │   ├── Calculators.kt         Werktijd, spaar & beleggingsberekeningen
 │   └── Currency.kt            12 valuta's
 ├── viewmodel/
-│   └── SalaryViewModel.kt     State management + DataStore
+│   ├── SalaryViewModel.kt     State management + DataStore
+│   └── PortfolioViewModel.kt  Portefeuille state + export/import
 ├── ui/
 │   ├── theme/                 Material 3 thema
 │   └── screens/
@@ -73,7 +110,14 @@ app/src/main/java/com/moneywise/
 │       ├── SalaryInputScreen.kt   Salaris invoer + preview
 │       ├── WorkTimeScreen.kt      Werktijd calculator
 │       ├── SavingsScreen.kt       Spaarsimulator
-│       └── InvestmentScreen.kt    Beleggingssimulator
+│       ├── InvestmentScreen.kt    Beleggingssimulator
+│       ├── PortfolioScreen.kt     Aandelen beheren + rebalancing
+│       ├── AdviceScreen.kt        Doelverdeling advies
+│       ├── AllocationScreen.kt    Visuele inkomstenverdeling
+│       └── ProfileScreen.kt       Over MoneyWise + data export/import
+├── worker/
+│   ├── InvestmentReminderWorker.kt  Dagelijkse investering-herinnering
+│   └── NotificationHelper.kt       Notificatie kanaal + tonen
 └── MainActivity.kt           Entry point + Navigation
 ```
 
