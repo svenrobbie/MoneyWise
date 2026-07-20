@@ -2,6 +2,7 @@ package com.moneywise.data
 
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 data class WorkTimeResult(
@@ -61,9 +62,22 @@ data class PurchaseComparison(
     val count: Int
 )
 
+data class GoalScenario(
+    val label: String,
+    val annualReturn: Double,
+    val monthlyContribution: Double,
+    val totalContributed: Double,
+    val totalGain: Double,
+    val futureValue: Double = 0.0
+)
+
 object Calculators {
 
     fun calculateWorkTime(purchasePrice: Double, profile: SalaryProfile): WorkTimeResult {
+        if (profile.hourlyWage <= 0 || profile.netHourly <= 0 || profile.hoursPerWeek <= 0) {
+            return WorkTimeResult(0.0, 0, 0.0, 0, "Vul je uurloon en werkweek in", "Vul je uurloon en werkweek in", 0.0)
+        }
+
         val grossHours = purchasePrice / profile.hourlyWage
         val netHours = purchasePrice / profile.netHourly
 
@@ -199,6 +213,68 @@ object Calculators {
             inflationRate = inflationRate,
             timeline = timeline
         )
+    }
+
+    fun calculateGoalScenarios(
+        targetAmount: Double,
+        years: Int,
+        initialAmount: Double = 0.0
+    ): List<GoalScenario> {
+        if (targetAmount <= 0 || years <= 0) return emptyList()
+        val months = years * 12
+        val scenarios = listOf(
+            GoalScenario("Niet gunstig", 3.0, 0.0, 0.0, 0.0),
+            GoalScenario("Redelijk", 7.0, 0.0, 0.0, 0.0),
+            GoalScenario("Fantastisch", 10.0, 0.0, 0.0, 0.0)
+        )
+        return scenarios.map { scenario ->
+            val monthlyRate = scenario.annualReturn / 100 / 12
+            val monthly = if (monthlyRate > 0) {
+                val factor = ((1 + monthlyRate).pow(months) - 1) / monthlyRate
+                val futureValueInitial = initialAmount * (1 + monthlyRate).pow(months)
+                val remaining = targetAmount - futureValueInitial
+                if (remaining > 0) remaining / factor else 0.0
+            } else {
+                val remaining = targetAmount - initialAmount
+                if (remaining > 0) remaining / months else 0.0
+            }
+            val totalContributed = initialAmount + monthly * months
+            val totalGain = targetAmount - totalContributed
+            scenario.copy(
+                monthlyContribution = monthly,
+                totalContributed = totalContributed,
+                totalGain = totalGain
+            )
+        }
+    }
+
+    fun calculatePortfolioProjection(
+        currentBalance: Double,
+        monthlyContribution: Double,
+        years: Int
+    ): List<GoalScenario> {
+        if (years <= 0) return emptyList()
+        val months = years * 12
+        val scenarios = listOf(
+            GoalScenario("Niet gunstig", 3.0, monthlyContribution, 0.0, 0.0),
+            GoalScenario("Redelijk", 7.0, monthlyContribution, 0.0, 0.0),
+            GoalScenario("Fantastisch", 10.0, monthlyContribution, 0.0, 0.0)
+        )
+        return scenarios.map { scenario ->
+            val monthlyRate = scenario.annualReturn / 100 / 12
+            var balance = currentBalance
+            repeat(months) {
+                balance += monthlyContribution
+                balance *= (1 + monthlyRate)
+            }
+            val totalContributed = currentBalance + monthlyContribution * months
+            val totalGain = balance - totalContributed
+            scenario.copy(
+                totalContributed = totalContributed,
+                totalGain = totalGain,
+                futureValue = balance
+            )
+        }
     }
 
     fun formatCurrency(amount: Double, currency: Currency, showDecimals: Boolean = true): String {

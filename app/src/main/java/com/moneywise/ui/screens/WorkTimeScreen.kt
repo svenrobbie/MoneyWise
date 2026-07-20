@@ -180,16 +180,18 @@ fun WorkTimeScreen(
 
                         HorizontalDivider()
 
-                        val ratio = price / profile.hourlyWage
-                        Text(
-                            text = "Dit is ${"%.1f".format(ratio)}x je uurloon (${Calculators.formatCurrency(profile.hourlyWage, profile.currency, showDecimals = true)}/uur)",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        if (profile.hourlyWage > 0) {
+                            val ratio = price / profile.hourlyWage
+                            Text(
+                                text = "Dit is ${"%.1f".format(ratio)}x je uurloon (${Calculators.formatCurrency(profile.hourlyWage, profile.currency, showDecimals = true)}/uur)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
 
                         val totalWeeklyHours = profile.hoursPerWeek
-                        val progress = (result.hours / totalWeeklyHours).toFloat().coerceIn(0f, 1f)
+                        val progress = if (totalWeeklyHours > 0) (result.hours / totalWeeklyHours).toFloat().coerceIn(0f, 1f) else 0f
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 text = "Aandeel in je werkweek",

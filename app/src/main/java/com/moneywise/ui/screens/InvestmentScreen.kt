@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +28,8 @@ import com.moneywise.viewmodel.SalaryViewModel
 @Composable
 fun InvestmentScreen(
     viewModel: SalaryViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPortfolio: () -> Unit = {}
 ) {
     val profile by viewModel.profile.collectAsState()
     val currency = remember(profile) { profile.currency }
@@ -77,6 +79,15 @@ fun InvestmentScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            OutlinedButton(
+                onClick = onPortfolio,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.TrendingUp, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Mijn Portefeuille beheren")
+            }
+
             OutlinedTextField(
                 value = startAmount,
                 onValueChange = { startAmount = it.filter { c -> c.isDigit() || c == '.' } },
@@ -154,6 +165,112 @@ fun InvestmentScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            Text(
+                text = "Bereken je doel",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            var goalAmount by remember { mutableStateOf("") }
+            var goalYears by remember { mutableFloatStateOf(initialYears.coerceIn(1f, 50f)) }
+            val parsedGoal = goalAmount.toDoubleOrNull() ?: 0.0
+            val parsedGoalYears = goalYears.toInt().coerceIn(1, 50)
+            val is4Weekly = profile.is4Weekly
+            val periodLabel = if (is4Weekly) "per 4 weken" else "per maand"
+
+            OutlinedTextField(
+                value = goalAmount,
+                onValueChange = { goalAmount = it.filter { c -> c.isDigit() || c == '.' } },
+                label = { Text("Doeleindbedrag") },
+                prefix = { Text(currency.symbol) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Looptijd", style = MaterialTheme.typography.bodyLarge)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "$parsedGoalYears jaar",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (profile.yearsUntilRetirement > 0) {
+                            AssistChip(
+                                onClick = { goalYears = profile.yearsUntilRetirement.toFloat() },
+                                label = { Text("Pensioen (${profile.retirementAge}e)") }
+                            )
+                        }
+                    }
+                }
+                Slider(
+                    value = goalYears,
+                    onValueChange = { goalYears = it },
+                    valueRange = 1f..50f,
+                    steps = 48,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (parsedGoal > 0) {
+                val goalScenarios = remember(parsedGoal, parsedGoalYears) {
+                    Calculators.calculateGoalScenarios(parsedGoal, parsedGoalYears)
+                }
+
+                Text(
+                    text = "Hoeveel moet je $periodLabel beleggen?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+
+                goalScenarios.forEach { scenario ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when (scenario.label) {
+                                "Niet gunstig" -> MaterialTheme.colorScheme.errorContainer
+                                "Redelijk" -> MaterialTheme.colorScheme.secondaryContainer
+                                else -> MaterialTheme.colorScheme.primaryContainer
+                            }
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${scenario.label} (${String.format("%.0f", scenario.annualReturn)}% rendement)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            ResultRow(
+                                label = "Maandelijkse inleg",
+                                value = "${Calculators.formatCurrency(scenario.monthlyContribution, currency)} $periodLabel"
+                            )
+                            ResultRow(
+                                label = "Totaal ingelegd",
+                                value = Calculators.formatCurrency(scenario.totalContributed, currency)
+                            )
+                            ResultRow(
+                                label = "Rendement",
+                                value = Calculators.formatCurrency(scenario.totalGain, currency)
+                            )
+                        }
+                    }
                 }
             }
 

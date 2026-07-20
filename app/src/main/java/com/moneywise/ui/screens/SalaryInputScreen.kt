@@ -399,22 +399,22 @@ fun SalaryInputScreen(
                             includeNight = includeNight,
                             includeShift = includeShift,
                             deductionName1 = deductionName1,
-                            deductionPercent1 = deductionPercent1.toDoubleOrNull() ?: 0.0,
+                            deductionPercent1 = deductionPercent1.toDoubleOrNull() ?: this.deductionPercent1,
                             deductionEnabled1 = deductionEnabled1,
                             deductionName2 = deductionName2,
-                            deductionPercent2 = deductionPercent2.toDoubleOrNull() ?: 0.0,
+                            deductionPercent2 = deductionPercent2.toDoubleOrNull() ?: this.deductionPercent2,
                             deductionEnabled2 = deductionEnabled2,
                             deductionName3 = deductionName3,
-                            deductionPercent3 = deductionPercent3.toDoubleOrNull() ?: 0.0,
+                            deductionPercent3 = deductionPercent3.toDoubleOrNull() ?: this.deductionPercent3,
                             deductionEnabled3 = deductionEnabled3,
                             extraName1 = extraName1,
-                            extraAmount1 = extraAmount1.toDoubleOrNull() ?: 0.0,
+                            extraAmount1 = extraAmount1.toDoubleOrNull() ?: this.extraAmount1,
                             extraEnabled1 = extraEnabled1,
                             extraName2 = extraName2,
-                            extraAmount2 = extraAmount2.toDoubleOrNull() ?: 0.0,
+                            extraAmount2 = extraAmount2.toDoubleOrNull() ?: this.extraAmount2,
                             extraEnabled2 = extraEnabled2,
                             extraName3 = extraName3,
-                            extraAmount3 = extraAmount3.toDoubleOrNull() ?: 0.0,
+                            extraAmount3 = extraAmount3.toDoubleOrNull() ?: this.extraAmount3,
                             extraEnabled3 = extraEnabled3,
                             taxConfigName = selectedTaxConfig.name,
                             currencyCode = selectedCurrency.code,
@@ -785,7 +785,7 @@ private fun PreviewCard(
             PreviewRow("Bruto per jaar", "${currency.symbol}${"%.2f".format(profile.totalAnnualGross)}")
             PreviewRow("Belastingpercentage", "${"%.1f".format(profile.effectiveTaxRate * 100)}%")
             if (profile.age > 0) {
-                PreviewRow("Jaren tot pensioen", "${profile.retirementAge - profile.age}")
+                PreviewRow("Jaren tot pensioen", "${(profile.retirementAge - profile.age).coerceAtLeast(0)}")
             }
         }
     }
