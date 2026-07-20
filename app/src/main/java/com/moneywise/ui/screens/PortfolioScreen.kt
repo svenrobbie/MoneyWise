@@ -21,6 +21,10 @@ import com.moneywise.data.PortfolioHolding
 import com.moneywise.viewmodel.PortfolioViewModel
 import com.moneywise.viewmodel.SalaryViewModel
 
+private fun blurValue(value: String, blurred: Boolean): String {
+    return if (blurred) "••••" else value
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(
@@ -34,6 +38,8 @@ fun PortfolioScreen(
     var showEditMonthly by remember { mutableStateOf(false) }
     var showDepositDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
+    var isBlurred by remember { mutableStateOf(false) }
+    var showDcaInfo by remember { mutableStateOf(false) }
 
     val totalInvested = remember(portfolio) { viewModel.getTotalInvested() }
     val totalValue = remember(portfolio) { viewModel.getTotalValue() }
@@ -49,6 +55,27 @@ fun PortfolioScreen(
     val rebalanceBySymbol = remember(rebalanceActions) { rebalanceActions.associateBy { it.symbol } }
 
     val yearsUntilRetirement = if (profile.yearsUntilRetirement > 0) profile.yearsUntilRetirement else 30
+
+    val personalizedScenario = remember(totalValue, parsedMonthly, yearsUntilRetirement, totalGainPercent) {
+        if (parsedMonthly > 0 && yearsUntilRetirement > 0 && totalGainPercent > 0) {
+            val monthlyRate = totalGainPercent / 100.0 / 12
+            val months = yearsUntilRetirement * 12
+            var balance = totalValue
+            repeat(months) {
+                balance += parsedMonthly
+                balance *= (1 + monthlyRate)
+            }
+            val totalContributed = totalValue + parsedMonthly * months
+            com.moneywise.data.GoalScenario(
+                label = "Jouw rendement",
+                annualReturn = totalGainPercent,
+                monthlyContribution = parsedMonthly,
+                totalContributed = totalContributed,
+                totalGain = balance - totalContributed,
+                futureValue = balance
+            )
+        } else null
+    }
 
     val goalScenarios = remember(totalValue, parsedMonthly, yearsUntilRetirement) {
         if (parsedMonthly > 0 && yearsUntilRetirement > 0) {
@@ -68,6 +95,14 @@ fun PortfolioScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Terug")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { isBlurred = !isBlurred }) {
+                        Icon(
+                            if (isBlurred) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (isBlurred) "Tonen" else "Verbergen"
+                        )
+                    }
                 }
             )
         }
@@ -81,7 +116,7 @@ fun PortfolioScreen(
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             item {
-                PortfolioSummaryCard(totalInvested, totalValue, totalGain, totalGainPercent, portfolio.wallet)
+                PortfolioSummaryCard(totalInvested, totalValue, totalGain, totalGainPercent, portfolio.wallet, isBlurred)
             }
 
             item {
@@ -93,7 +128,7 @@ fun PortfolioScreen(
                     Column {
                         Text("Maandbedrag", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                         Text(
-                            text = if (parsedMonthly > 0) "€${String.format("%.0f", parsedMonthly)}" else "Niet ingesteld",
+                            text = if (parsedMonthly > 0) blurValue("€${String.format("%.0f", parsedMonthly)}", isBlurred) else "Niet ingesteld",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -118,6 +153,7 @@ fun PortfolioScreen(
                         holding = holding,
                         totalValue = totalValue,
                         rebalanceAction = rebalanceBySymbol[holding.symbol],
+                        isBlurred = isBlurred,
                         onRemove = { viewModel.removeHolding(holding.symbol) },
                         onUpdateTarget = { newPercent ->
                             viewModel.updateHolding(holding.symbol) { copy(targetPercent = newPercent) }
@@ -150,6 +186,62 @@ fun PortfolioScreen(
             }
 
             item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).clickable { showDcaInfo = !showDcaInfo }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Waarom maandelijks beleggen?",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Icon(
+                                if (showDcaInfo) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        AnimatedVisibility(visible = showDcaInfo) {
+                            Column(
+                                modifier = Modifier.padding(top = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Dollar-Cost Averaging (DCA)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "Door elke maand hetzelfde bedrag te beleggen koop je automatisch meer eenheden als de koers laag is, en minder als de koers hoog is. Dit verlaagt je gemiddelde aankoopprijs en vermindert het risico op een verkeerd moment in te stappen.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "In plaats van te wachten op het \"perfecte\" moment — wat niemand kan voorspellen — zorgt DCA ervoor dat je consistent bouwt aan je vermogen, ongeacht marktomstandigheden.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             }
 
@@ -162,7 +254,7 @@ fun PortfolioScreen(
                     Column {
                         Text("Portemonnee", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                         Text(
-                            text = "€${String.format("%.2f", portfolio.wallet)}",
+                            text = blurValue("€${String.format("%.2f", portfolio.wallet)}", isBlurred),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -197,7 +289,7 @@ fun PortfolioScreen(
                         )
                         if (portfolio.wallet in 0.01..parsedMonthly) {
                             Text(
-                                text = "Beschikbaar: €${String.format("%.0f", portfolio.wallet)} (van €${String.format("%.0f", parsedMonthly)} maandbedrag)",
+                                text = "Beschikbaar: ${blurValue("€${String.format("%.0f", portfolio.wallet)}", isBlurred)} (van ${blurValue("€${String.format("%.0f", parsedMonthly)}", isBlurred)} maandbedrag)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -206,7 +298,7 @@ fun PortfolioScreen(
                 }
 
                 items(rebalanceActions) { action ->
-                    RebalanceCard(action = action)
+                    RebalanceCard(action = action, isBlurred = isBlurred)
                 }
 
                 if (rebalanceActions.any { it.insufficientFunds }) {
@@ -242,7 +334,7 @@ fun PortfolioScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "€${String.format("%.2f", totalLeftOver)} over na aankopen",
+                                    text = "${blurValue("€${String.format("%.2f", totalLeftOver)}", isBlurred)} over na aankopen",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
@@ -256,7 +348,7 @@ fun PortfolioScreen(
                 }
             }
 
-            if (parsedMonthly > 0 && totalValue > 0 && goalScenarios.isNotEmpty()) {
+            if (parsedMonthly > 0 && totalValue > 0 && (personalizedScenario != null || goalScenarios.isNotEmpty())) {
                 item {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 }
@@ -267,8 +359,15 @@ fun PortfolioScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                if (personalizedScenario != null) {
+                    item {
+                        GoalScenarioCard(scenario = personalizedScenario, currencySymbol = "€", years = yearsUntilRetirement, isBlurred = isBlurred, isPersonalized = true)
+                    }
+                }
+
                 items(goalScenarios) { scenario ->
-                    GoalScenarioCard(scenario = scenario, currencySymbol = "€", years = yearsUntilRetirement)
+                    GoalScenarioCard(scenario = scenario, currencySymbol = "€", years = yearsUntilRetirement, isBlurred = isBlurred)
                 }
             }
 
@@ -375,7 +474,7 @@ fun PortfolioScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Beschikbaar: €${String.format("%.2f", portfolio.wallet)}",
+                        text = "Beschikbaar: ${blurValue("€${String.format("%.2f", portfolio.wallet)}", isBlurred)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -409,7 +508,7 @@ fun PortfolioScreen(
 }
 
 @Composable
-private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, totalGain: Double, totalGainPercent: Double, wallet: Double = 0.0) {
+private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, totalGain: Double, totalGainPercent: Double, wallet: Double = 0.0, isBlurred: Boolean = false) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -427,14 +526,14 @@ private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, tota
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Geïnvesteerd", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                Text("€${String.format("%,.2f", totalInvested)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(blurValue("€${String.format("%,.2f", totalInvested)}", isBlurred), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Huidige waarde", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                Text("€${String.format("%,.2f", totalValue)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(blurValue("€${String.format("%,.2f", totalValue)}", isBlurred), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             if (wallet > 0.01) {
                 Row(
@@ -442,7 +541,7 @@ private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, tota
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Portemonnee", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                    Text("€${String.format("%,.2f", wallet)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(blurValue("€${String.format("%,.2f", wallet)}", isBlurred), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
@@ -452,7 +551,7 @@ private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, tota
             ) {
                 Text("Winst/verlies", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                 Text(
-                    text = "${if (totalGain >= 0) "+" else ""}€${String.format("%,.2f", totalGain)} (${String.format("%.1f", totalGainPercent)}%)",
+                    text = if (isBlurred) "••••" else "${if (totalGain >= 0) "+" else ""}€${String.format("%,.2f", totalGain)} (${String.format("%.1f", totalGainPercent)}%)",
                     fontWeight = FontWeight.Bold,
                     color = if (totalGain >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                 )
@@ -466,6 +565,7 @@ private fun HoldingCard(
     holding: PortfolioHolding,
     totalValue: Double,
     rebalanceAction: com.moneywise.data.RebalanceAction? = null,
+    isBlurred: Boolean = false,
     onRemove: () -> Unit,
     onUpdateTarget: (Double) -> Unit,
     onUpdateShares: (Double) -> Unit,
@@ -502,9 +602,9 @@ private fun HoldingCard(
                     Text("${if (holding.shares % 1.0 == 0.0) holding.shares.toInt().toString() else String.format("%.2f", holding.shares)} stuks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("€${String.format("%,.2f", currentValue)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    Text(blurValue("€${String.format("%,.2f", currentValue)}", isBlurred), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = "${if (gain >= 0) "+" else ""}€${String.format("%.0f", gain)} (${String.format("%.1f", gainPercent)}%)",
+                        text = if (isBlurred) "•••• (${String.format("%.1f", gainPercent)}%)" else "${if (gain >= 0) "+" else ""}€${String.format("%.0f", gain)} (${String.format("%.1f", gainPercent)}%)",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (gain >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
@@ -515,8 +615,8 @@ private fun HoldingCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Geïnvesteerd: €${String.format("%,.0f", invested)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                    Text("Huidig: €${String.format("%,.0f", currentValue)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    Text("Geïnvesteerd: ${blurValue("€${String.format("%,.0f", invested)}", isBlurred)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    Text("Huidig: ${blurValue("€${String.format("%,.0f", currentValue)}", isBlurred)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Doel: ${String.format("%.1f", holding.targetPercent)}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
@@ -611,7 +711,7 @@ private fun HoldingCard(
                                 Text("Advies op basis van doelverdeling", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 val deficit = rebalanceAction.targetPercent - rebalanceAction.currentPercent
                                 Text("Tekort: ${String.format("%.1f", deficit)}% onder doel", style = MaterialTheme.typography.bodySmall)
-                                Text("Suggestie: koop ${rebalanceAction.sharesToBuy} stuk${if (rebalanceAction.sharesToBuy > 1) "s" else ""} voor €${String.format("%.2f", rebalanceAction.amountToSpend)}", style = MaterialTheme.typography.bodySmall)
+                                Text("Suggestie: koop ${rebalanceAction.sharesToBuy} stuk${if (rebalanceAction.sharesToBuy > 1) "s" else ""} voor ${blurValue("€${String.format("%.2f", rebalanceAction.amountToSpend)}", isBlurred)}", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     } else if (rebalanceAction != null && rebalanceAction.currentPercent >= rebalanceAction.targetPercent) {
@@ -750,13 +850,14 @@ private fun HoldingCard(
 }
 
 @Composable
-private fun GoalScenarioCard(scenario: com.moneywise.data.GoalScenario, currencySymbol: String, years: Int = 30) {
+private fun GoalScenarioCard(scenario: com.moneywise.data.GoalScenario, currencySymbol: String, years: Int = 30, isBlurred: Boolean = false, isPersonalized: Boolean = false) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when (scenario.label) {
-                "Fantastisch" -> MaterialTheme.colorScheme.tertiaryContainer
-                "Redelijk" -> MaterialTheme.colorScheme.secondaryContainer
+            containerColor = when {
+                isPersonalized -> MaterialTheme.colorScheme.primaryContainer
+                scenario.label == "Fantastisch" -> MaterialTheme.colorScheme.tertiaryContainer
+                scenario.label == "Redelijk" -> MaterialTheme.colorScheme.secondaryContainer
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
         )
@@ -782,22 +883,22 @@ private fun GoalScenarioCard(scenario: com.moneywise.data.GoalScenario, currency
             }
             if (scenario.futureValue > 0) {
                 Text(
-                    text = "Na $years jaar: $currencySymbol${String.format("%,.0f", scenario.futureValue)}",
+                    text = "Na $years jaar: ${blurValue("$currencySymbol${String.format("%,.0f", scenario.futureValue)}", isBlurred)}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
             if (scenario.monthlyContribution > 0) {
                 Text(
-                    text = "Maandelijks: $currencySymbol${String.format("%.0f", scenario.monthlyContribution)}",
+                    text = "Maandelijks: ${blurValue("$currencySymbol${String.format("%.0f", scenario.monthlyContribution)}", isBlurred)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Totaal ingelegd: $currencySymbol${String.format("%,.0f", scenario.totalContributed)}",
+                    text = "Totaal ingelegd: ${blurValue("$currencySymbol${String.format("%,.0f", scenario.totalContributed)}", isBlurred)}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    text = "Rendement: $currencySymbol${String.format("%,.0f", scenario.totalGain)}",
+                    text = "Rendement: ${blurValue("$currencySymbol${String.format("%,.0f", scenario.totalGain)}", isBlurred)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (scenario.totalGain >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                 )
@@ -807,7 +908,7 @@ private fun GoalScenarioCard(scenario: com.moneywise.data.GoalScenario, currency
 }
 
 @Composable
-private fun RebalanceCard(action: com.moneywise.data.RebalanceAction) {
+private fun RebalanceCard(action: com.moneywise.data.RebalanceAction, isBlurred: Boolean = false) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -830,7 +931,7 @@ private fun RebalanceCard(action: com.moneywise.data.RebalanceAction) {
             if (action.sharesToBuy > 0) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Koop ${action.sharesToBuy} stuk${if (action.sharesToBuy > 1) "s" else ""}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Text("€${String.format("%.2f", action.amountToSpend)}", style = MaterialTheme.typography.bodySmall)
+                    Text(blurValue("€${String.format("%.2f", action.amountToSpend)}", isBlurred), style = MaterialTheme.typography.bodySmall)
                 }
             } else if (action.insufficientFunds) {
                 Text("Niet genoeg saldo", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
