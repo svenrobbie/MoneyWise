@@ -1,7 +1,7 @@
 package com.moneywise.data
 
 import kotlinx.serialization.Serializable
-import kotlin.math.min
+import kotlin.math.max
 
 @Serializable
 data class TaxBracket(
@@ -29,7 +29,7 @@ data class TaxConfig(
                 annualIncome - bracket.from
             tax += taxableInBracket * bracket.rate
         }
-        return tax - generalTaxCredit - employmentTaxCredit
+        return max(0.0, tax - generalTaxCredit - employmentTaxCredit)
     }
 
     fun calculateEffectiveRate(annualIncome: Double): Double {

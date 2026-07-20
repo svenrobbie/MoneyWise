@@ -37,7 +37,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.moneywise.data.Calculators
-import com.moneywise.data.SalaryProfile
 import com.moneywise.viewmodel.SalaryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +52,7 @@ fun WorkTimeScreen(
     val result = remember(price, profile) {
         if (price > 0.0) Calculators.calculateWorkTime(price, profile) else null
     }
+    val comparisons = remember(price) { Calculators.getPurchaseComparisons(price) }
 
     Scaffold(
         topBar = {
@@ -111,6 +111,22 @@ fun WorkTimeScreen(
                         label = {
                             Text(Calculators.formatCurrency(amount, profile.currency, showDecimals = false))
                         }
+                    )
+                }
+            }
+
+            if (price <= 0.0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = "Voer een bedrag in om te zien hoe lang je ervoor moet werken",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -195,33 +211,60 @@ fun WorkTimeScreen(
                             )
                         }
 
-                        HorizontalDivider()
+                        if (comparisons.isNotEmpty()) {
+                            HorizontalDivider()
 
-                        val comparison = remember(price, profile) { getComparison(price, profile) }
-                        Text(
-                            text = "Dat is vergelijkbaar met $comparison",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Dat is vergelijkbaar met:",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                comparisons.forEach { comparison ->
+                                    Text(
+                                        text = "${comparison.emoji} ${comparison.count} ${comparison.label}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+
+                        if (profile.yearsUntilRetirement > 0) {
+                            HorizontalDivider()
+
+                            val investmentResult = remember(price, profile) {
+                                Calculators.calculateInvestment(
+                                    initialAmount = price,
+                                    monthlyContribution = 0.0,
+                                    annualReturn = 7.0,
+                                    years = profile.yearsUntilRetirement
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Als je dit geld zou sparen op je leeftijd (${profile.age} jaar), heb je op je ${profile.retirementAge}e...",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = Calculators.formatCurrency(investmentResult.finalAmount, profile.currency),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = " (${Calculators.formatCurrency(investmentResult.totalGain, profile.currency)} winst na ${profile.yearsUntilRetirement} jaar bij 7% rendement)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-private fun getComparison(price: Double, profile: SalaryProfile): String {
-    val coffeePrice = 3.50
-    val lunchPrice = 12.00
-    val cinemaPrice = 15.00
-
-    val coffees = (price / coffeePrice).toInt()
-    val lunches = (price / lunchPrice).toInt()
-    val cinemas = (price / cinemaPrice).toInt()
-
-    return buildString {
-        append("$coffees kopjes koffie")
-        if (lunches > 0) append(", $lunches lunches")
-        if (cinemas > 0) append(" of $cinemas bioscoopbezoek${if (cinemas > 1) "en" else ""}")
     }
 }

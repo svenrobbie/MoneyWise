@@ -35,18 +35,33 @@ fun SavingsScreen(
     var monthlyText by remember { mutableStateOf("0") }
     var rateText by remember { mutableStateOf("2.5") }
     var years by remember { mutableIntStateOf(30) }
+    var goalText by remember { mutableStateOf("") }
 
     val initial = initialText.toDoubleOrNull() ?: 0.0
     val monthly = monthlyText.toDoubleOrNull() ?: 0.0
     val rate = rateText.toDoubleOrNull() ?: 0.0
+    val goalAmount = goalText.toDoubleOrNull() ?: 0.0
+
+    val hasInput = initial > 0.0 || monthly > 0.0
 
     val result = remember(initial, monthly, rate, years) {
         Calculators.calculateSavings(initial, monthly, rate, years)
     }
+
+    val monthsToGoal = remember(monthly, rate, goalAmount, initial) {
+        if (goalAmount > 0) Calculators.calculateMonthsToGoal(monthly, rate, goalAmount, initial) else null
+    }
+
     val currency = profile.currency
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
     val outline = MaterialTheme.colorScheme.outlineVariant
+
+    val yearsUntilRetirement = profile.yearsUntilRetirement
+
+    val retirementResult = remember(initial, monthly, rate, yearsUntilRetirement) {
+        if (yearsUntilRetirement > 0) Calculators.calculateSavings(initial, monthly, rate, yearsUntilRetirement) else null
+    }
 
     Scaffold(
         topBar = {
@@ -108,6 +123,66 @@ fun SavingsScreen(
                 }
             }
 
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Spaardoel", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600)
+                    OutlinedTextField(
+                        value = goalText,
+                        onValueChange = { goalText = it },
+                        label = { Text("Doelbedrag") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    if (monthsToGoal != null) {
+                        val maanden = monthsToGoal
+                        if (maanden < 12) {
+                            Text(
+                                "Je hebt $maanden maanden nodig om dit te bereiken",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.W500
+                            )
+                        } else {
+                            val jaren = maanden / 12
+                            val restMaanden = maanden % 12
+                            val text = if (restMaanden == 0) {
+                                "Dit duurt $jaren jaar"
+                            } else {
+                                "Dit duurt $jaren jaar en $restMaanden maanden"
+                            }
+                            Text(
+                                text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.W500
+                            )
+                        }
+                    } else if (goalAmount > 0 && monthly <= 0) {
+                        Text(
+                            "Voer een maandelijkse inleg in om het aantal maanden te berekenen",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            if (!hasInput) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(
+                        "Voer bedragen in om te zien hoe je spaargeld groeit",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -143,6 +218,32 @@ fun SavingsScreen(
                         Text(Calculators.formatCurrency(result.totalInterest, currency),
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600,
                             color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    }
+                }
+            }
+
+            if (retirementResult != null && hasInput) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Bij pensioen (${profile.retirementAge} jaar)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            Calculators.formatCurrency(retirementResult.finalAmount, currency),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            "Na $yearsUntilRetirement jaar (${Calculators.formatCurrency(retirementResult.totalContributed, currency, showDecimals = false)} ingelegd)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }

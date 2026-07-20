@@ -36,7 +36,8 @@ fun InvestmentScreen(
     var monthlyAmount by remember { mutableStateOf("") }
     var returnPercent by remember { mutableStateOf("7") }
     var inflationPercent by remember { mutableStateOf("2.5") }
-    var years by remember { mutableFloatStateOf(30f) }
+    val initialYears = if (profile.age > 0) profile.yearsUntilRetirement.toFloat() else 30f
+    var years by remember { mutableFloatStateOf(initialYears.coerceIn(1f, 50f)) }
 
     val parsedStart = startAmount.toDoubleOrNull() ?: 0.0
     val parsedMonthly = monthlyAmount.toDoubleOrNull() ?: 0.0
@@ -44,8 +45,14 @@ fun InvestmentScreen(
     val parsedInflation = inflationPercent.toDoubleOrNull() ?: 0.0
     val parsedYears = years.toInt().coerceIn(1, 50)
 
+    val hasInput = parsedStart > 0.0 || parsedMonthly > 0.0
+
     val result = remember(parsedStart, parsedMonthly, parsedReturn, parsedYears, parsedInflation) {
         Calculators.calculateInvestment(parsedStart, parsedMonthly, parsedReturn, parsedYears, parsedInflation)
+    }
+
+    val savingsResult = remember(parsedStart, parsedMonthly, parsedYears) {
+        Calculators.calculateInvestment(parsedStart, parsedMonthly, 2.5, parsedYears, 0.0)
     }
 
     val multiplier = if (result.totalContributed > 0) result.finalAmount / result.totalContributed else 0.0
@@ -131,7 +138,26 @@ fun InvestmentScreen(
                 )
             }
 
-            if (result.totalContributed > 0) {
+            if (!hasInput) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = "Voer bedragen in om te zien wat je beleggingen waard kunnen worden",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (hasInput) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -142,6 +168,12 @@ fun InvestmentScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Text(
+                            text = "Als je dit $parsedYears jaar volhoudt, heb je op je ${profile.age + parsedYears}-jarige leeftijd ${Calculators.formatCurrency(result.finalAmount, currency)} op je rekening staan",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         ResultRow(
                             label = "Nominaal saldo",
                             value = Calculators.formatCurrency(result.finalAmount, currency)
@@ -181,6 +213,42 @@ fun InvestmentScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Vergeleken met sparen",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Bij sparen met 2,5% rente zou je na $parsedYears jaar ${Calculators.formatCurrency(savingsResult.finalAmount, currency)} hebben",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        val difference = result.finalAmount - savingsResult.finalAmount
+                        ResultRow(
+                            label = "Beleggen",
+                            value = Calculators.formatCurrency(result.finalAmount, currency)
+                        )
+                        ResultRow(
+                            label = "Sparen (2,5%)",
+                            value = Calculators.formatCurrency(savingsResult.finalAmount, currency)
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                        ResultRow(
+                            label = "Verschil",
+                            value = Calculators.formatCurrency(difference, currency)
+                        )
+                    }
                 }
 
                 if (result.timeline.isNotEmpty()) {

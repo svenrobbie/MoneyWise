@@ -28,6 +28,7 @@ fun SalaryInputScreen(
 
     var hourlyWage by remember(profile.hourlyWage) { mutableStateOf(profile.hourlyWage.toString()) }
     var hoursPerWeek by remember(profile.hoursPerWeek) { mutableStateOf(profile.hoursPerWeek.toString()) }
+    var age by remember(profile.age) { mutableStateOf(profile.age.toString()) }
     var holidayAllowance by remember(profile.holidayAllowancePercent) { mutableStateOf(profile.holidayAllowancePercent.toString()) }
     var endOfYearBonus by remember(profile.endOfYearBonusPercent) { mutableStateOf(profile.endOfYearBonusPercent.toString()) }
     var overtimePercent by remember(profile.overtimePercent) { mutableStateOf(profile.overtimePercent.toString()) }
@@ -78,6 +79,15 @@ fun SalaryInputScreen(
                 onValueChange = { hoursPerWeek = it },
                 label = { Text("Uren per week") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = age,
+                onValueChange = { age = it },
+                label = { Text("Leeftijd") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -204,6 +214,7 @@ fun SalaryInputScreen(
                         copy(
                             hourlyWage = hourlyWage.toDoubleOrNull() ?: this.hourlyWage,
                             hoursPerWeek = hoursPerWeek.toDoubleOrNull() ?: this.hoursPerWeek,
+                            age = age.toIntOrNull() ?: this.age,
                             holidayAllowancePercent = holidayAllowance.toDoubleOrNull() ?: this.holidayAllowancePercent,
                             endOfYearBonusPercent = endOfYearBonus.toDoubleOrNull() ?: this.endOfYearBonusPercent,
                             overtimePercent = overtimePercent.toDoubleOrNull() ?: this.overtimePercent,
@@ -250,6 +261,9 @@ private fun PreviewCard(
             PreviewRow("Netto per maand", "${currency.symbol}${"%.2f".format(profile.netMonthly)}")
             PreviewRow("Bruto per jaar", "${currency.symbol}${"%.2f".format(profile.totalAnnualGross)}")
             PreviewRow("Belastingpercentage", "${"%.1f".format(profile.effectiveTaxRate * 100)}%")
+            if (profile.age > 0) {
+                PreviewRow("Jaren tot pensioen", "${67 - profile.age}")
+            }
         }
     }
 }

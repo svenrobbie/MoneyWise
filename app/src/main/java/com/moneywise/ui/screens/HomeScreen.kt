@@ -168,6 +168,20 @@ private fun SalarySummaryCard(profile: SalaryProfile) {
                 label = "Bruto per jaar",
                 value = Calculators.formatCurrency(profile.totalAnnualGross, profile.currency, false)
             )
+            if (profile.age > 0) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                )
+                SummaryRow(
+                    label = "Leeftijd",
+                    value = "${profile.age} jaar"
+                )
+                SummaryRow(
+                    label = "Jaren tot pensioen",
+                    value = "${profile.yearsUntilRetirement} jaar (op ${profile.retirementAge})"
+                )
+            }
         }
     }
 }

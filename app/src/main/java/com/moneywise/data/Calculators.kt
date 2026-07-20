@@ -2,6 +2,7 @@ package com.moneywise.data
 
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.roundToInt
 
 data class WorkTimeResult(
     val hours: Double,
@@ -9,7 +10,8 @@ data class WorkTimeResult(
     val grossHours: Double,
     val grossMinutes: Int,
     val humanReadable: String,
-    val humanReadableGross: String
+    val humanReadableGross: String,
+    val workdays: Double
 )
 
 data class SavingsYear(
@@ -53,6 +55,12 @@ data class InvestmentResult(
     val totalRealGain: Double get() = finalRealAmount - totalContributed
 }
 
+data class PurchaseComparison(
+    val emoji: String,
+    val label: String,
+    val count: Int
+)
+
 object Calculators {
 
     fun calculateWorkTime(purchasePrice: Double, profile: SalaryProfile): WorkTimeResult {
@@ -65,17 +73,18 @@ object Calculators {
         val netM = ((netHours - netH) * 60).toInt()
 
         val hoursPerDay = profile.hoursPerWeek / 5
+        val workdays = netHours / hoursPerDay
 
         val humanReadable = when {
             netHours < 1 -> "${netM} minuten"
             netHours < 24 -> "$netH uur en $netM minuten"
-            else -> "${(netHours / hoursPerDay).toString().take(4)} werkdagen"
+            else -> "${String.format("%.1f", workdays)} werkdagen"
         }
 
         val humanReadableGross = when {
             grossHours < 1 -> "${grossM} minuten"
             grossHours < 24 -> "$grossH uur en $grossM minuten"
-            else -> "${(grossHours / hoursPerDay).toString().take(4)} werkdagen"
+            else -> "${String.format("%.1f", grossHours / hoursPerDay)} werkdagen"
         }
 
         return WorkTimeResult(
@@ -84,8 +93,20 @@ object Calculators {
             grossHours = grossHours,
             grossMinutes = grossM,
             humanReadable = humanReadable,
-            humanReadableGross = humanReadableGross
+            humanReadableGross = humanReadableGross,
+            workdays = workdays
         )
+    }
+
+    fun getPurchaseComparisons(price: Double): List<PurchaseComparison> {
+        val items = listOf(
+            PurchaseComparison("\u2615", "kopjes koffie", (price / 3.50).toInt()),
+            PurchaseComparison("\ud83e\udd6a", "lunches", (price / 12.0).toInt()),
+            PurchaseComparison("\ud83c\udfac", "bioscoopbezoeken", (price / 12.50).toInt()),
+            PurchaseComparison("\ud83d\udeb2", "fietstanks benzine", (price / 20.0).toInt()),
+            PurchaseComparison("\ud83c\udf55", "pizza\u2019s", (price / 10.0).toInt()),
+        )
+        return items.filter { it.count > 0 }
     }
 
     fun calculateSavings(
@@ -120,6 +141,24 @@ object Calculators {
             years = years,
             timeline = timeline
         )
+    }
+
+    fun calculateMonthsToGoal(
+        monthlyContribution: Double,
+        annualRate: Double,
+        targetAmount: Double,
+        initialAmount: Double = 0.0
+    ): Int? {
+        if (monthlyContribution <= 0 || targetAmount <= initialAmount) return null
+        val monthlyRate = annualRate / 100 / 12
+        var balance = initialAmount
+        var months = 0
+        while (balance < targetAmount && months < 1200) {
+            balance += monthlyContribution
+            balance *= (1 + monthlyRate)
+            months++
+        }
+        return if (balance >= targetAmount) months else null
     }
 
     fun calculateInvestment(
