@@ -551,7 +551,7 @@ private fun PortfolioSummaryCard(totalInvested: Double, totalValue: Double, tota
             ) {
                 Text("Winst/verlies", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                 Text(
-                    text = if (isBlurred) "••••" else "${if (totalGain >= 0) "+" else ""}€${String.format("%,.2f", totalGain)} (${String.format("%.1f", totalGainPercent)}%)",
+                    text = "${if (isBlurred) "••••" else "${if (totalGain >= 0) "+" else ""}€${String.format("%,.2f", totalGain)}"} (${String.format("%.1f", totalGainPercent)}%)",
                     fontWeight = FontWeight.Bold,
                     color = if (totalGain >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                 )
