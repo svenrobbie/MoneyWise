@@ -2,12 +2,13 @@ package com.moneywise.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.PiggyBank
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
@@ -64,13 +65,13 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            item(span = { GridCells.Fixed(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 GreetingCard(greeting = greeting, date = currentDate)
             }
-            item(span = { GridCells.Fixed(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 SalarySummaryCard(profile = profile)
             }
-            item(span = { GridCells.Fixed(1) }) {
+            item(span = { GridItemSpan(1) }) {
                 NavCard(
                     icon = Icons.Default.AccountBalance,
                     label = "Salaris",
@@ -78,7 +79,7 @@ fun HomeScreen(
                     onClick = { navController.navigate("salary") }
                 )
             }
-            item(span = { GridCells.Fixed(1) }) {
+            item(span = { GridItemSpan(1) }) {
                 NavCard(
                     icon = Icons.Default.Work,
                     label = "Werktijd",
@@ -86,15 +87,15 @@ fun HomeScreen(
                     onClick = { navController.navigate("worktime") }
                 )
             }
-            item(span = { GridCells.Fixed(1) }) {
+            item(span = { GridItemSpan(1) }) {
                 NavCard(
-                    icon = Icons.Default.PiggyBank,
+                    icon = Icons.Default.Savings,
                     label = "Sparen",
                     subtitle = "Sparen simulator",
                     onClick = { navController.navigate("savings") }
                 )
             }
-            item(span = { GridCells.Fixed(1) }) {
+            item(span = { GridItemSpan(1) }) {
                 NavCard(
                     icon = Icons.Default.TrendingUp,
                     label = "Beleggen",
