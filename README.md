@@ -14,28 +14,31 @@ Smart salary calculator - see what your money really costs in work time.
 
 ## Tech Stack
 
-- Flutter + Dart
-- Riverpod (state management)
-- SharedPreferences (local storage)
-- fl_chart (charts)
-- Material 3 with dynamic color
+- Kotlin
+- Jetpack Compose (Material 3)
+- ViewModel + StateFlow
+- DataStore Preferences (local storage)
+- Navigation Compose
+- Vico (charts)
 
 ## Getting Started
 
+Open in Android Studio and run on emulator or device (minSdk 26+).
+
 ```bash
-flutter pub get
-flutter run
+./gradlew assembleDebug
 ```
 
 ## Project Structure
 
 ```
-lib/
-├── models/          Data models (SalaryProfile, Currency, TaxConfig)
-├── providers/       Riverpod state management
-├── screens/         App screens (Home, Salary, WorkTime, Savings, Investment)
-├── utils/           Calculators, formatters, constants
-└── main.dart        Entry point
+app/src/main/java/com/moneywise/
+├── data/            Data models & calculators
+├── viewmodel/       ViewModel for state management
+├── ui/
+│   ├── theme/       Material 3 theme
+│   └── screens/     App screens
+└── MainActivity.kt  Entry point + Navigation
 ```
 
 ## License
