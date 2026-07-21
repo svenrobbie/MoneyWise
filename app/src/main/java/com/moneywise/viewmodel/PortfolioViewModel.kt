@@ -178,6 +178,20 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
         return jsonPretty.encodeToString(exportData)
     }
 
+    fun getExportCsv(): String {
+        val sb = StringBuilder()
+        sb.appendLine("Symbool;Naam;Aantal;Aankoopprijs;Huidigeprijs;Doel%;Waarde;Winst/verlies")
+        for (h in _portfolio.value.holdings) {
+            val value = h.shares * h.currentPrice
+            val gain = value - (h.shares * h.avgPurchasePrice)
+            sb.appendLine("${h.symbol};${h.name};${h.shares};${h.avgPurchasePrice};${h.currentPrice};${h.targetPercent};${"%.2f".format(value)};${"%.2f".format(gain)}")
+        }
+        sb.appendLine()
+        sb.appendLine("Portemonnee;;${_portfolio.value.wallet}")
+        sb.appendLine("Maandbedrag;;${_portfolio.value.monthlyAmount}")
+        return sb.toString()
+    }
+
     fun importPortfolio(jsonString: String): Boolean {
         return try {
             val importData = json.decodeFromString<PortfolioExport>(jsonString)
@@ -191,10 +205,12 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun save() {
         viewModelScope.launch {
-            val key = stringPreferencesKey("portfolio")
-            dataStore.edit { prefs ->
-                prefs[key] = json.encodeToString(_portfolio.value.copy(lastUpdated = System.currentTimeMillis()))
-            }
+            try {
+                val key = stringPreferencesKey("portfolio")
+                dataStore.edit { prefs ->
+                    prefs[key] = json.encodeToString(_portfolio.value.copy(lastUpdated = System.currentTimeMillis()))
+                }
+            } catch (_: Exception) {}
         }
     }
 }

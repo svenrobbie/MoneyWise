@@ -53,7 +53,9 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            MoneyWiseTheme {
+            val viewModel: SalaryViewModel = viewModel()
+            val darkModeOverride by viewModel.darkModeOverride.collectAsState()
+            MoneyWiseTheme(darkThemeOverride = darkModeOverride) {
                 MoneyWiseApp()
             }
         }
@@ -80,16 +82,14 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Home : Screen("home", "Home", Icons.Default.Home)
     data object Salary : Screen("salary", "Salaris", Icons.Default.Payments)
     data object WorkTime : Screen("worktime", "Werktijd", Icons.Default.Timer)
-    data object Savings : Screen("savings", "Sparen", Icons.Default.Savings)
-    data object Investment : Screen("investment", "Beleggen", Icons.Default.TrendingUp)
+    data object Portfolio : Screen("portfolio", "Portefeuille", Icons.Default.TrendingUp)
 }
 
 val bottomNavItems = listOf(
     Screen.Home,
     Screen.Salary,
     Screen.WorkTime,
-    Screen.Savings,
-    Screen.Investment,
+    Screen.Portfolio,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,30 +151,24 @@ fun MoneyWiseApp() {
                     viewModel = viewModel
                 )
             }
-            composable(Screen.Savings.route) {
-                SavingsScreen(
-                    onBack = { navController.popBackStack() },
-                    viewModel = viewModel
-                )
-            }
-            composable(Screen.Investment.route) {
-                InvestmentScreen(
-                    onBack = { navController.popBackStack() },
-                    viewModel = viewModel,
-                    onPortfolio = { navController.navigate("portfolio") }
-                )
-            }
-            composable("portfolio") {
+            composable(Screen.Portfolio.route) {
                 PortfolioScreen(
                     onBack = { navController.popBackStack() },
                     viewModel = portfolioViewModel,
                     salaryViewModel = viewModel
                 )
             }
+            composable("savings") {
+                SavingsScreen(
+                    onBack = { navController.popBackStack() },
+                    viewModel = viewModel
+                )
+            }
             composable("profile") {
                 ProfileScreen(
                     onBack = { navController.popBackStack() },
-                    portfolioViewModel = portfolioViewModel
+                    portfolioViewModel = portfolioViewModel,
+                    salaryViewModel = viewModel
                 )
             }
             composable("allocation") {

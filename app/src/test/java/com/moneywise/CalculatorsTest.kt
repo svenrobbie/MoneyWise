@@ -1,6 +1,7 @@
 package com.moneywise
 
 import com.moneywise.data.*
+import com.moneywise.util.InputValidator
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -203,5 +204,214 @@ class SalaryProfileTest {
             includeShift = false
         )
         assertEquals("Effective wage should equal base", 20.0, profile.effectiveHourlyWage, 0.01)
+    }
+}
+
+class InputValidatorTest {
+
+    @Test
+    fun `filterDecimal allows digits and dot`() {
+        assertEquals("123.45", InputValidator.filterDecimal("123.45"))
+    }
+
+    @Test
+    fun `filterDecimal removes letters`() {
+        assertEquals("1234", InputValidator.filterDecimal("12a3b4"))
+    }
+
+    @Test
+    fun `filterDecimal allows only one dot`() {
+        assertEquals("12.34", InputValidator.filterDecimal("12.3.4"))
+    }
+
+    @Test
+    fun `filterDecimal handles empty input`() {
+        assertEquals("", InputValidator.filterDecimal(""))
+    }
+
+    @Test
+    fun `filterDecimal handles dot only`() {
+        assertEquals(".", InputValidator.filterDecimal("."))
+    }
+
+    @Test
+    fun `filterDecimal handles leading dot`() {
+        assertEquals(".5", InputValidator.filterDecimal(".5"))
+    }
+
+    @Test
+    fun `filterInteger removes all non-digits`() {
+        assertEquals("1234", InputValidator.filterInteger("12a3.4b"))
+    }
+
+    @Test
+    fun `filterInteger handles empty input`() {
+        assertEquals("", InputValidator.filterInteger(""))
+    }
+
+    @Test
+    fun `filterDecimalWithSign allows leading minus`() {
+        assertEquals("-12.5", InputValidator.filterDecimalWithSign("-12.5"))
+    }
+
+    @Test
+    fun `filterDecimalWithSign removes mid-string minus`() {
+        assertEquals("125", InputValidator.filterDecimalWithSign("1-25"))
+    }
+
+    @Test
+    fun `filterDecimalWithSign handles multiple dots`() {
+        assertEquals("-1.25", InputValidator.filterDecimalWithSign("-1.2.5"))
+    }
+}
+
+class GoalScenarioTest {
+
+    @Test
+    fun `calculateGoalScenarios returns 3 scenarios`() {
+        val scenarios = Calculators.calculateGoalScenarios(100000.0, 20)
+        assertEquals(3, scenarios.size)
+    }
+
+    @Test
+    fun `calculateGoalScenarios higher return needs less monthly`() {
+        val scenarios = Calculators.calculateGoalScenarios(100000.0, 20)
+        assertTrue("Niet gunstig needs most", scenarios[0].monthlyContribution >= scenarios[1].monthlyContribution)
+        assertTrue("Redelijk needs most", scenarios[1].monthlyContribution >= scenarios[2].monthlyContribution)
+    }
+
+    @Test
+    fun `calculateGoalScenarios zero target returns empty`() {
+        val scenarios = Calculators.calculateGoalScenarios(0.0, 20)
+        assertTrue(scenarios.isEmpty())
+    }
+
+    @Test
+    fun `calculateGoalScenarios zero years returns empty`() {
+        val scenarios = Calculators.calculateGoalScenarios(100000.0, 0)
+        assertTrue(scenarios.isEmpty())
+    }
+
+    @Test
+    fun `calculatePortfolioProjection returns 3 scenarios`() {
+        val scenarios = Calculators.calculatePortfolioProjection(10000.0, 500.0, 10)
+        assertEquals(3, scenarios.size)
+    }
+
+    @Test
+    fun `calculatePortfolioProjection future value increases with return`() {
+        val scenarios = Calculators.calculatePortfolioProjection(10000.0, 500.0, 10)
+        assertTrue(scenarios[0].futureValue <= scenarios[1].futureValue)
+        assertTrue(scenarios[1].futureValue <= scenarios[2].futureValue)
+    }
+
+    @Test
+    fun `calculatePortfolioProjection zero years returns empty`() {
+        val scenarios = Calculators.calculatePortfolioProjection(10000.0, 500.0, 0)
+        assertTrue(scenarios.isEmpty())
+    }
+}
+
+class FormatCurrencyTest {
+
+    @Test
+    fun `formatCurrency returns non-empty string`() {
+        val result = Calculators.formatCurrency(1234.56, Currency.EUR)
+        assertTrue(result.isNotEmpty())
+    }
+
+    @Test
+    fun `formatCurrency with no decimals`() {
+        val result = Calculators.formatCurrency(1234.56, Currency.EUR, showDecimals = false)
+        assertFalse(result.contains(",56"))
+    }
+
+    @Test
+    fun `formatCompact thousands`() {
+        val result = Calculators.formatCompact(5000.0, Currency.EUR)
+        assertTrue(result.contains("K"))
+    }
+
+    @Test
+    fun `formatCompact millions`() {
+        val result = Calculators.formatCompact(2_500_000.0, Currency.EUR)
+        assertTrue(result.contains("M"))
+    }
+
+    @Test
+    fun `formatCompact small amount`() {
+        val result = Calculators.formatCompact(50.0, Currency.EUR)
+        assertFalse(result.contains("K"))
+        assertFalse(result.contains("M"))
+    }
+}
+
+class CurrencyTest {
+
+    @Test
+    fun `fromCode EUR`() {
+        assertEquals(Currency.EUR, Currency.fromCode("EUR"))
+    }
+
+    @Test
+    fun `fromCode unknown returns EUR`() {
+        assertEquals(Currency.EUR, Currency.fromCode("XYZ"))
+    }
+
+    @Test
+    fun `all currencies have symbol`() {
+        Currency.all.forEach { currency ->
+            assertTrue("${currency.code} should have symbol", currency.symbol.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun `all currencies have name`() {
+        Currency.all.forEach { currency ->
+            assertTrue("${currency.code} should have name", currency.name.isNotEmpty())
+        }
+    }
+}
+
+class EdgeCaseTest {
+
+    @Test
+    fun `work time with zero wage returns placeholder`() {
+        val profile = SalaryProfile(hourlyWage = 0.0, hoursPerWeek = 40.0)
+        val result = Calculators.calculateWorkTime(100.0, profile)
+        assertEquals(0.0, result.hours, 0.01)
+    }
+
+    @Test
+    fun `work time with zero hours per week returns placeholder`() {
+        val profile = SalaryProfile(hourlyWage = 20.0, hoursPerWeek = 0.0)
+        val result = Calculators.calculateWorkTime(100.0, profile)
+        assertEquals(0.0, result.hours, 0.01)
+    }
+
+    @Test
+    fun `savings with zero initial and zero monthly`() {
+        val result = Calculators.calculateSavings(0.0, 0.0, 5.0, 10)
+        assertEquals(0.0, result.finalAmount, 0.01)
+    }
+
+    @Test
+    fun `investment with zero contribution`() {
+        val result = Calculators.calculateInvestment(10000.0, 0.0, 7.0, 10)
+        assertTrue(result.finalAmount > 10000.0)
+        assertEquals(10000.0, result.totalContributed, 0.01)
+    }
+
+    @Test
+    fun `months to goal already reached`() {
+        val months = Calculators.calculateMonthsToGoal(100.0, 5.0, 50.0, 100.0)
+        assertNotNull(months)
+        assertEquals(0, months)
+    }
+
+    @Test
+    fun `purchase comparisons with zero price`() {
+        val comparisons = Calculators.getPurchaseComparisons(0.0)
+        assertTrue(comparisons.isEmpty())
     }
 }

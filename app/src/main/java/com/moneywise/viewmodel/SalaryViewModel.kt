@@ -27,6 +27,9 @@ class SalaryViewModel(application: Application) : AndroidViewModel(application) 
     private val _profile = MutableStateFlow(SalaryProfile())
     val profile: StateFlow<SalaryProfile> = _profile.asStateFlow()
 
+    private val _darkModeOverride = MutableStateFlow<Boolean?>(null)
+    val darkModeOverride: StateFlow<Boolean?> = _darkModeOverride.asStateFlow()
+
     init {
         viewModelScope.launch {
             val prefs = dataStore.data.first()
@@ -36,6 +39,30 @@ class SalaryViewModel(application: Application) : AndroidViewModel(application) 
                     _profile.value = json.decodeFromString(stored)
                 } catch (_: Exception) {}
             }
+            val darkKey = stringPreferencesKey("dark_mode")
+            prefs[darkKey]?.let { stored ->
+                _darkModeOverride.value = when (stored) {
+                    "true" -> true
+                    "false" -> false
+                    else -> null
+                }
+            }
+        }
+    }
+
+    fun setDarkMode(mode: Boolean?) {
+        _darkModeOverride.value = mode
+        viewModelScope.launch {
+            try {
+                val key = stringPreferencesKey("dark_mode")
+                dataStore.edit { prefs ->
+                    prefs[key] = when (mode) {
+                        true -> "true"
+                        false -> "false"
+                        null -> "system"
+                    }
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -46,10 +73,12 @@ class SalaryViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun save() {
         viewModelScope.launch {
-            val key = stringPreferencesKey("salary_profile")
-            dataStore.edit { prefs ->
-                prefs[key] = json.encodeToString(_profile.value)
-            }
+            try {
+                val key = stringPreferencesKey("salary_profile")
+                dataStore.edit { prefs ->
+                    prefs[key] = json.encodeToString(_profile.value)
+                }
+            } catch (_: Exception) {}
         }
     }
 }

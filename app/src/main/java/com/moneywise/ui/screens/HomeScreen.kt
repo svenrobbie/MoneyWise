@@ -13,16 +13,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.moneywise.data.Calculators
-import com.moneywise.data.SalaryProfile
 import com.moneywise.viewmodel.PortfolioViewModel
 import com.moneywise.viewmodel.SalaryViewModel
+import com.moneywise.ui.components.ResultRow
+import com.moneywise.ui.components.SummaryCard
+import com.moneywise.ui.components.blurValue
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private fun blurValue(value: String, blurred: Boolean): String {
-    return if (blurred) "••••" else value
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +81,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -107,6 +105,159 @@ fun HomeScreen(
                 }
             }
 
+            SummaryCard(title = "Salaris Overzicht") {
+                ResultRow(
+                    label = "Uurloon",
+                    value = blurValue(Calculators.formatCurrency(profile.hourlyWage, profile.currency, true), isBlurred),
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Netto ${profile.paymentPeriodLabel}",
+                    value = blurValue(Calculators.formatCurrency(profile.netPerPeriod, profile.currency, false), isBlurred),
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Netto per jaar",
+                    value = blurValue(Calculators.formatCurrency(profile.netAnnual, profile.currency, false), isBlurred),
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Bruto per jaar",
+                    value = blurValue(Calculators.formatCurrency(profile.totalAnnualGross, profile.currency, false), isBlurred),
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                if (profile.totalDeductionPercent > 0) {
+                    ResultRow(
+                        label = "Aftrekposten (${String.format("%.1f", profile.totalDeductionPercent)}%)",
+                        value = blurValue(Calculators.formatCurrency(profile.annualDeductions, profile.currency, false), isBlurred),
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                if (profile.annualExtras != 0.0) {
+                    ResultRow(
+                        label = "Overige extra's",
+                        value = blurValue(Calculators.formatCurrency(profile.annualExtras, profile.currency, false), isBlurred),
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                if (profile.age > 0) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                    )
+                    ResultRow(
+                        label = "Leeftijd",
+                        value = blurValue("${profile.age} jaar", isBlurred),
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    ResultRow(
+                        label = "Jaren tot pensioen",
+                        value = blurValue("${profile.yearsUntilRetirement} jaar (op ${profile.retirementAge})", isBlurred),
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(100.dp),
+                    onClick = { navController.navigate("portfolio") },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.PieChart,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Portefeuille",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(100.dp),
+                    onClick = { navController.navigate("allocation") },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Lightbulb,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Verdeling",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(100.dp),
+                    onClick = { navController.navigate("savings") },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Savings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Sparen",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
             if (isInvestmentDue) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -125,7 +276,7 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("💰", style = MaterialTheme.typography.titleMedium)
+                            Text("\uD83D\uDCB0", style = MaterialTheme.typography.titleMedium)
                             Text(
                                 text = "Heb je al beleggd?",
                                 style = MaterialTheme.typography.bodyLarge,
@@ -141,119 +292,7 @@ fun HomeScreen(
                     }
                 }
             }
-
-            SalarySummaryCard(profile = profile, isBlurred = isBlurred)
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { navController.navigate("portfolio") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.PieChart, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Portefeuille")
-                }
-                Button(
-                    onClick = { navController.navigate("allocation") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Verdeling")
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun SalarySummaryCard(profile: SalaryProfile, isBlurred: Boolean = false) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Salaris Overzicht",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            SummaryRow(
-                label = "Uurloon",
-                value = blurValue(Calculators.formatCurrency(profile.hourlyWage, profile.currency, true), isBlurred)
-            )
-            SummaryRow(
-                label = "Netto ${profile.paymentPeriodLabel}",
-                value = blurValue(Calculators.formatCurrency(profile.netPerPeriod, profile.currency, false), isBlurred)
-            )
-            SummaryRow(
-                label = "Netto per jaar",
-                value = blurValue(Calculators.formatCurrency(profile.netAnnual, profile.currency, false), isBlurred)
-            )
-            SummaryRow(
-                label = "Bruto per jaar",
-                value = blurValue(Calculators.formatCurrency(profile.totalAnnualGross, profile.currency, false), isBlurred)
-            )
-            if (profile.totalDeductionPercent > 0) {
-                SummaryRow(
-                    label = "Aftrekposten (${String.format("%.1f", profile.totalDeductionPercent)}%)",
-                    value = blurValue(Calculators.formatCurrency(profile.annualDeductions, profile.currency, false), isBlurred)
-                )
-            }
-            if (profile.annualExtras != 0.0) {
-                SummaryRow(
-                    label = "Overige extra's",
-                    value = blurValue(Calculators.formatCurrency(profile.annualExtras, profile.currency, false), isBlurred)
-                )
-            }
-            if (profile.age > 0) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-                )
-                SummaryRow(
-                    label = "Leeftijd",
-                    value = blurValue("${profile.age} jaar", isBlurred)
-                )
-                SummaryRow(
-                    label = "Jaren tot pensioen",
-                    value = blurValue("${profile.yearsUntilRetirement} jaar (op ${profile.retirementAge})", isBlurred)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
-        )
     }
 }
 

@@ -1,15 +1,37 @@
 package com.moneywise.ui.screens
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.moneywise.data.SalaryProfile
+import com.moneywise.ui.components.InputCard
+import com.moneywise.ui.components.ResultRow
+import com.moneywise.ui.components.SummaryCard
 
 enum class ProfileType(val label: String, val description: String) {
     STUDENT("Student", "Ik studeer nog"),
@@ -167,54 +192,19 @@ fun AllocationScreen(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
-            HorizontalDivider()
-
-            Text(
-                text = "Wat is je situatie?",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ProfileType.entries.forEach { type ->
-                    FilterChip(
-                        selected = selectedProfile == type,
-                        onClick = { selectedProfile = type },
-                        label = {
-                            Column {
-                                Text(type.label, fontWeight = FontWeight.Medium)
-                                Text(type.description, style = MaterialTheme.typography.bodySmall)
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            if (selectedProfile != null) {
-                HorizontalDivider()
-
-                Text(
-                    text = "Wat is je ervaring?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
+            InputCard("Wat is je situatie?") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Level.entries.forEach { level ->
+                    ProfileType.entries.forEach { type ->
                         FilterChip(
-                            selected = selectedLevel == level,
-                            onClick = { selectedLevel = level },
+                            selected = selectedProfile == type,
+                            onClick = { selectedProfile = type },
                             label = {
                                 Column {
-                                    Text(level.label, fontWeight = FontWeight.Medium)
-                                    Text(level.description, style = MaterialTheme.typography.bodySmall)
+                                    Text(type.label, fontWeight = FontWeight.Medium)
+                                    Text(type.description, style = MaterialTheme.typography.bodySmall)
                                 }
                             },
                             modifier = Modifier.weight(1f)
@@ -223,89 +213,102 @@ fun AllocationScreen(
                 }
             }
 
-            if (selectedProfile != null && selectedLevel != null) {
-                HorizontalDivider()
-
-                Text(
-                    text = "Hoeveel kun je per maand besteden?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = inputMode == "amount",
-                        onClick = { inputMode = "amount" },
-                        label = { Text("Bedrag (€)") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = inputMode == "percent",
-                        onClick = { inputMode = "percent" },
-                        label = { Text("% van netto loon") },
-                        modifier = Modifier.weight(1f)
-                    )
+            if (selectedProfile != null) {
+                InputCard("Wat is je ervaring?") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Level.entries.forEach { level ->
+                            FilterChip(
+                                selected = selectedLevel == level,
+                                onClick = { selectedLevel = level },
+                                label = {
+                                    Column {
+                                        Text(level.label, fontWeight = FontWeight.Medium)
+                                        Text(level.description, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
+            }
 
-                if (inputMode == "amount") {
-                    OutlinedTextField(
-                        value = amountInput,
-                        onValueChange = { amountInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Bedrag per maand") },
-                        prefix = { Text("€") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = percentInput,
-                        onValueChange = { percentInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Percentage van netto loon") },
-                        suffix = { Text("%") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (parsedPercent > 0) {
-                        Text(
-                            text = "€${String.format("%.2f", profile.netMonthly * parsedPercent / 100.0)} per maand",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            if (selectedProfile != null && selectedLevel != null) {
+                InputCard("Hoeveel kun je per maand besteden?") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = inputMode == "amount",
+                            onClick = { inputMode = "amount" },
+                            label = { Text("Bedrag (\u20AC)") },
+                            modifier = Modifier.weight(1f)
                         )
+                        FilterChip(
+                            selected = inputMode == "percent",
+                            onClick = { inputMode = "percent" },
+                            label = { Text("% van netto loon") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (inputMode == "amount") {
+                        OutlinedTextField(
+                            value = amountInput,
+                            onValueChange = { amountInput = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("Bedrag per maand") },
+                            prefix = { Text("\u20AC") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = percentInput,
+                            onValueChange = { percentInput = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("Percentage van netto loon") },
+                            suffix = { Text("%") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (parsedPercent > 0) {
+                            Text(
+                                text = "\u20AC${String.format("%.2f", profile.netMonthly * parsedPercent / 100.0)} per maand",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
 
             if (result != null) {
-                HorizontalDivider()
-
-                Text(
-                    text = "Jouw verdeling",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Text(
+                            text = "Jouw verdeling",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
                         AllocationBar(
                             savePercent = result.savePercent,
                             investPercent = result.investPercent,
                             saveAmount = result.saveAmount,
                             investAmount = result.investAmount
                         )
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
@@ -317,7 +320,7 @@ fun AllocationScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
                                 Text(
-                                    text = "€${String.format("%.0f", result.saveAmount)}",
+                                    text = "\u20AC${String.format("%.0f", result.saveAmount)}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.tertiary
@@ -330,7 +333,7 @@ fun AllocationScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
                                 Text(
-                                    text = "€${String.format("%.0f", result.investAmount)}",
+                                    text = "\u20AC${String.format("%.0f", result.investAmount)}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -340,28 +343,12 @@ fun AllocationScreen(
                     }
                 }
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                SummaryCard("Waarom deze verdeling?") {
+                    Text(
+                        text = result.explanation,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Waarom deze verdeling?",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = result.explanation,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
                 }
 
                 Card(
@@ -377,12 +364,12 @@ fun AllocationScreen(
                         Text(
                             text = "Tips",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                         result.tips.forEach { tip ->
                             Text(
-                                text = "• $tip",
+                                text = "\u2022 $tip",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
@@ -397,7 +384,7 @@ fun AllocationScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
                 ) {
                     Text(

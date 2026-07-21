@@ -25,7 +25,7 @@ object NotificationHelper {
         manager.createNotificationChannel(channel)
     }
 
-    fun showReminder(context: Context) {
+    fun showReminder(context: Context, monthlyAmount: Double = 0.0) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -34,10 +34,16 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val text = if (monthlyAmount > 0) {
+            "Het is tijd om je maandbedrag van \u20AC${String.format("%.0f", monthlyAmount)} te beleggen"
+        } else {
+            "Heb je al beleggd deze periode?"
+        }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("💰 Beleggingsherinnering")
-            .setContentText("Heb je al beleggd deze periode?")
+            .setContentTitle("Beleggingsherinnering")
+            .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

@@ -36,7 +36,7 @@ class InvestmentReminderWorker(
             if (daysSince < threshold) return Result.success()
         }
 
-        NotificationHelper.showReminder(applicationContext)
+        NotificationHelper.showReminder(applicationContext, portfolio.monthlyAmount)
         return Result.success()
     }
 

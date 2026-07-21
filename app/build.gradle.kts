@@ -4,6 +4,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.io.FileInputStream
+import java.util.Properties
+
+val localProps = Properties()
+rootProject.file("local.properties").let { f ->
+    if (f.exists()) FileInputStream(f).use { localProps.load(it) }
+}
+
 android {
     namespace = "com.moneywise"
     compileSdk = 35
@@ -12,22 +20,23 @@ android {
         applicationId = "com.moneywise"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
     }
 
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file("release.keystore")
-            storePassword = "moneywise123"
-            keyAlias = "moneywise"
-            keyPassword = "moneywise123"
+            storeFile = rootProject.file("release.jks")
+            storePassword = localProps.getProperty("STORE_PASSWORD", "")
+            keyAlias = localProps.getProperty("KEY_ALIAS", "")
+            keyPassword = localProps.getProperty("KEY_PASSWORD", "")
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -43,6 +52,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

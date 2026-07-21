@@ -1,19 +1,41 @@
 package com.moneywise.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +44,11 @@ import androidx.compose.ui.unit.dp
 import com.moneywise.data.Currency
 import com.moneywise.data.SalaryProfile
 import com.moneywise.data.TaxConfig
+import com.moneywise.ui.components.CollapsibleSection
+import com.moneywise.ui.components.InputCard
+import com.moneywise.ui.components.ResultRow
+import com.moneywise.ui.components.SummaryCard
+import com.moneywise.util.InputValidator
 import com.moneywise.viewmodel.SalaryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,100 +184,119 @@ fun SalaryInputScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            PreviewCard(profile = previewProfile, currency = selectedCurrency)
-
-            HorizontalDivider()
-
-            Text(
-                text = "Basis gegevens",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            OutlinedTextField(
-                value = hourlyWage,
-                onValueChange = { hourlyWage = it },
-                label = { Text("Uurloon") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = hoursPerWeek,
-                onValueChange = { hoursPerWeek = it },
-                label = { Text("Uren per week") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = age,
-                onValueChange = { age = it },
-                label = { Text("Leeftijd") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                text = "Betaalfrequentie",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = paymentFrequency == "monthly",
-                    onClick = { paymentFrequency = "monthly" },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                ) {
-                    Text("Maandelijks")
-                }
-                SegmentedButton(
-                    selected = paymentFrequency == "4weekly",
-                    onClick = { paymentFrequency = "4weekly" },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                ) {
-                    Text("4-wekelijks")
+            SummaryCard("Overzicht") {
+                ResultRow(
+                    label = "Bruto ${previewProfile.paymentPeriodLabel}",
+                    value = "${selectedCurrency.symbol}${"%.2f".format(previewProfile.grossPerPeriod)}",
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Netto ${previewProfile.paymentPeriodLabel}",
+                    value = "${selectedCurrency.symbol}${"%.2f".format(previewProfile.netPerPeriod)}",
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Bruto per jaar",
+                    value = "${selectedCurrency.symbol}${"%.2f".format(previewProfile.totalAnnualGross)}",
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                ResultRow(
+                    label = "Belastingpercentage",
+                    value = "${"%.1f".format(previewProfile.effectiveTaxRate * 100)}%",
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                if (previewProfile.age > 0) {
+                    ResultRow(
+                        label = "Jaren tot pensioen",
+                        value = "${(previewProfile.retirementAge - previewProfile.age).coerceAtLeast(0)}",
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        valueColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            InputCard("Basis gegevens") {
+                OutlinedTextField(
+                    value = hourlyWage,
+                    onValueChange = { hourlyWage = InputValidator.filterDecimal(it) },
+                    label = { Text("Uurloon") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Text(
-                text = "Hoofd toeslagen",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+                OutlinedTextField(
+                    value = hoursPerWeek,
+                    onValueChange = { hoursPerWeek = InputValidator.filterDecimal(it) },
+                    label = { Text("Uren per week") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            PercentFieldWithToggle(
-                value = holidayAllowance,
-                onValueChange = { holidayAllowance = it },
-                label = "Vakantiegeld (%)",
-                checked = includeHolidayAllowance,
-                onCheckedChange = { includeHolidayAllowance = it }
-            )
+                OutlinedTextField(
+                    value = age,
+                    onValueChange = { age = InputValidator.filterInteger(it) },
+                    label = { Text("Leeftijd") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            PercentFieldWithToggle(
-                value = atv,
-                onValueChange = { atv = it },
-                label = "ATV-toeslag (%)",
-                checked = includeAtv,
-                onCheckedChange = { includeAtv = it }
-            )
+                Text(
+                    text = "Betaalfrequentie",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = paymentFrequency == "monthly",
+                        onClick = { paymentFrequency = "monthly" },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("Maandelijks")
+                    }
+                    SegmentedButton(
+                        selected = paymentFrequency == "4weekly",
+                        onClick = { paymentFrequency = "4weekly" },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("4-wekelijks")
+                    }
+                }
+            }
 
-            PercentFieldWithToggle(
-                value = verlof,
-                onValueChange = { verlof = it },
-                label = "Verlof-toeslag (%)",
-                checked = includeVerlof,
-                onCheckedChange = { includeVerlof = it }
-            )
+            InputCard("Hoofd toeslagen") {
+                PercentFieldWithToggle(
+                    value = holidayAllowance,
+                    onValueChange = { holidayAllowance = it },
+                    label = "Vakantiegeld (%)",
+                    checked = includeHolidayAllowance,
+                    onCheckedChange = { includeHolidayAllowance = it }
+                )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                PercentFieldWithToggle(
+                    value = atv,
+                    onValueChange = { atv = it },
+                    label = "ATV-toeslag (%)",
+                    checked = includeAtv,
+                    onCheckedChange = { includeAtv = it }
+                )
+
+                PercentFieldWithToggle(
+                    value = verlof,
+                    onValueChange = { verlof = it },
+                    label = "Verlof-toeslag (%)",
+                    checked = includeVerlof,
+                    onCheckedChange = { includeVerlof = it }
+                )
+            }
 
             OverigeToeslagenSection(
                 expanded = overigeExpanded,
@@ -274,8 +320,6 @@ fun SalaryInputScreen(
                 includeShift = includeShift,
                 onIncludeShiftChange = { includeShift = it }
             )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             AftrekpostenSection(
                 expanded = aftrekExpanded,
@@ -306,70 +350,64 @@ fun SalaryInputScreen(
                 currencySymbol = selectedCurrency.symbol
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            Text(
-                text = "Instellingen",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            ExposedDropdownMenuBox(
-                expanded = taxConfigExpanded,
-                onExpandedChange = { taxConfigExpanded = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedTaxConfig.name,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Belastingregio") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = taxConfigExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                )
-                ExposedDropdownMenu(
+            InputCard("Instellingen") {
+                ExposedDropdownMenuBox(
                     expanded = taxConfigExpanded,
-                    onDismissRequest = { taxConfigExpanded = false }
+                    onExpandedChange = { taxConfigExpanded = it }
                 ) {
-                    TaxConfig.all.forEach { config ->
-                        DropdownMenuItem(
-                            text = { Text(config.name) },
-                            onClick = {
-                                selectedTaxConfig = config
-                                taxConfigExpanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = selectedTaxConfig.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Belastingregio") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = taxConfigExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = taxConfigExpanded,
+                        onDismissRequest = { taxConfigExpanded = false }
+                    ) {
+                        TaxConfig.all.forEach { config ->
+                            DropdownMenuItem(
+                                text = { Text(config.name) },
+                                onClick = {
+                                    selectedTaxConfig = config
+                                    taxConfigExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
-            }
 
-            ExposedDropdownMenuBox(
-                expanded = currencyExpanded,
-                onExpandedChange = { currencyExpanded = it }
-            ) {
-                OutlinedTextField(
-                    value = "${selectedCurrency.code} (${selectedCurrency.symbol})",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Valuta") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                )
-                ExposedDropdownMenu(
+                ExposedDropdownMenuBox(
                     expanded = currencyExpanded,
-                    onDismissRequest = { currencyExpanded = false }
+                    onExpandedChange = { currencyExpanded = it }
                 ) {
-                    Currency.all.forEach { currency ->
-                        DropdownMenuItem(
-                            text = { Text("${currency.code} (${currency.symbol}) - ${currency.name}") },
-                            onClick = {
-                                selectedCurrency = currency
-                                currencyExpanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = "${selectedCurrency.code} (${selectedCurrency.symbol})",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Valuta") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = currencyExpanded,
+                        onDismissRequest = { currencyExpanded = false }
+                    ) {
+                        Currency.all.forEach { currency ->
+                            DropdownMenuItem(
+                                text = { Text("${currency.code} (${currency.symbol}) - ${currency.name}") },
+                                onClick = {
+                                    selectedCurrency = currency
+                                    currencyExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -446,7 +484,7 @@ private fun PercentFieldWithToggle(
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { onValueChange(InputValidator.filterDecimal(it)) },
             label = { Text(label) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
@@ -483,63 +521,46 @@ private fun OverigeToeslagenSection(
     includeShift: Boolean,
     onIncludeShiftChange: (Boolean) -> Unit
 ) {
-    Column {
-        CollapsibleHeader(
-            title = "Overige toeslagen",
-            expanded = expanded,
-            onToggle = onToggle
+    CollapsibleSection(
+        title = "Overige toeslagen",
+        expanded = expanded,
+        onToggle = onToggle
+    ) {
+        PercentFieldWithToggle(
+            value = endOfYearBonus,
+            onValueChange = onEndOfYearBonusChange,
+            label = "Eindejaarsbonus (%)",
+            checked = true,
+            onCheckedChange = {}
         )
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                PercentFieldWithToggle(
-                    value = endOfYearBonus,
-                    onValueChange = onEndOfYearBonusChange,
-                    label = "Eindejaarsbonus (%)",
-                    checked = true,
-                    onCheckedChange = {}
-                )
-
-                PercentFieldWithToggle(
-                    value = overtimePercent,
-                    onValueChange = onOvertimeChange,
-                    label = "Overwerktoeslag (%)",
-                    checked = includeOvertime,
-                    onCheckedChange = onIncludeOvertimeChange
-                )
-
-                PercentFieldWithToggle(
-                    value = weekendPercent,
-                    onValueChange = onWeekendChange,
-                    label = "Weekendtoeslag (%)",
-                    checked = includeWeekend,
-                    onCheckedChange = onIncludeWeekendChange
-                )
-
-                PercentFieldWithToggle(
-                    value = nightPercent,
-                    onValueChange = onNightChange,
-                    label = "Nachttoeslag (%)",
-                    checked = includeNight,
-                    onCheckedChange = onIncludeNightChange
-                )
-
-                PercentFieldWithToggle(
-                    value = shiftPercent,
-                    onValueChange = onShiftChange,
-                    label = "Ploegentoeslag (%)",
-                    checked = includeShift,
-                    onCheckedChange = onIncludeShiftChange
-                )
-            }
-        }
+        PercentFieldWithToggle(
+            value = overtimePercent,
+            onValueChange = onOvertimeChange,
+            label = "Overwerktoeslag (%)",
+            checked = includeOvertime,
+            onCheckedChange = onIncludeOvertimeChange
+        )
+        PercentFieldWithToggle(
+            value = weekendPercent,
+            onValueChange = onWeekendChange,
+            label = "Weekendtoeslag (%)",
+            checked = includeWeekend,
+            onCheckedChange = onIncludeWeekendChange
+        )
+        PercentFieldWithToggle(
+            value = nightPercent,
+            onValueChange = onNightChange,
+            label = "Nachttoeslag (%)",
+            checked = includeNight,
+            onCheckedChange = onIncludeNightChange
+        )
+        PercentFieldWithToggle(
+            value = shiftPercent,
+            onValueChange = onShiftChange,
+            label = "Ploegentoeslag (%)",
+            checked = includeShift,
+            onCheckedChange = onIncludeShiftChange
+        )
     }
 }
 
@@ -557,42 +578,29 @@ private fun AftrekpostenSection(
     percent3: String, onPercent3Change: (String) -> Unit,
     enabled3: Boolean, onEnabled3Change: (Boolean) -> Unit
 ) {
-    Column {
-        CollapsibleHeader(
-            title = "Aftrekposten (%)",
-            expanded = expanded,
-            onToggle = onToggle
+    CollapsibleSection(
+        title = "Aftrekposten (%)",
+        expanded = expanded,
+        onToggle = onToggle
+    ) {
+        DeductionRow(
+            name = name1, onNameChange = onName1Change,
+            percent = percent1, onPercentChange = onPercent1Change,
+            enabled = enabled1, onEnabledChange = onEnabled1Change,
+            defaultLabel = "Naam (bijv. Pensioen)"
         )
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                DeductionRow(
-                    name = name1, onNameChange = onName1Change,
-                    percent = percent1, onPercentChange = onPercent1Change,
-                    enabled = enabled1, onEnabledChange = onEnabled1Change,
-                    defaultLabel = "Naam (bijv. Pensioen)"
-                )
-                DeductionRow(
-                    name = name2, onNameChange = onName2Change,
-                    percent = percent2, onPercentChange = onPercent2Change,
-                    enabled = enabled2, onEnabledChange = onEnabled2Change,
-                    defaultLabel = "Naam"
-                )
-                DeductionRow(
-                    name = name3, onNameChange = onName3Change,
-                    percent = percent3, onPercentChange = onPercent3Change,
-                    enabled = enabled3, onEnabledChange = onEnabled3Change,
-                    defaultLabel = "Naam"
-                )
-            }
-        }
+        DeductionRow(
+            name = name2, onNameChange = onName2Change,
+            percent = percent2, onPercentChange = onPercent2Change,
+            enabled = enabled2, onEnabledChange = onEnabled2Change,
+            defaultLabel = "Naam"
+        )
+        DeductionRow(
+            name = name3, onNameChange = onName3Change,
+            percent = percent3, onPercentChange = onPercent3Change,
+            enabled = enabled3, onEnabledChange = onEnabled3Change,
+            defaultLabel = "Naam"
+        )
     }
 }
 
@@ -618,7 +626,7 @@ private fun DeductionRow(
         )
         OutlinedTextField(
             value = percent,
-            onValueChange = onPercentChange,
+            onValueChange = { onPercentChange(InputValidator.filterDecimal(it)) },
             label = { Text("%") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
@@ -647,45 +655,32 @@ private fun OverigeExtrasSection(
     enabled3: Boolean, onEnabled3Change: (Boolean) -> Unit,
     currencySymbol: String
 ) {
-    Column {
-        CollapsibleHeader(
-            title = "Overige extra's (€)",
-            expanded = expanded,
-            onToggle = onToggle
+    CollapsibleSection(
+        title = "Overige extra's (€)",
+        expanded = expanded,
+        onToggle = onToggle
+    ) {
+        ExtraRow(
+            name = name1, onNameChange = onName1Change,
+            amount = amount1, onAmountChange = onAmount1Change,
+            enabled = enabled1, onEnabledChange = onEnabled1Change,
+            defaultLabel = "Naam (bijv. Bonus)",
+            currencySymbol = currencySymbol
         )
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                ExtraRow(
-                    name = name1, onNameChange = onName1Change,
-                    amount = amount1, onAmountChange = onAmount1Change,
-                    enabled = enabled1, onEnabledChange = onEnabled1Change,
-                    defaultLabel = "Naam (bijv. Bonus)",
-                    currencySymbol = currencySymbol
-                )
-                ExtraRow(
-                    name = name2, onNameChange = onName2Change,
-                    amount = amount2, onAmountChange = onAmount2Change,
-                    enabled = enabled2, onEnabledChange = onEnabled2Change,
-                    defaultLabel = "Naam",
-                    currencySymbol = currencySymbol
-                )
-                ExtraRow(
-                    name = name3, onNameChange = onName3Change,
-                    amount = amount3, onAmountChange = onAmount3Change,
-                    enabled = enabled3, onEnabledChange = onEnabled3Change,
-                    defaultLabel = "Naam",
-                    currencySymbol = currencySymbol
-                )
-            }
-        }
+        ExtraRow(
+            name = name2, onNameChange = onName2Change,
+            amount = amount2, onAmountChange = onAmount2Change,
+            enabled = enabled2, onEnabledChange = onEnabled2Change,
+            defaultLabel = "Naam",
+            currencySymbol = currencySymbol
+        )
+        ExtraRow(
+            name = name3, onNameChange = onName3Change,
+            amount = amount3, onAmountChange = onAmount3Change,
+            enabled = enabled3, onEnabledChange = onEnabled3Change,
+            defaultLabel = "Naam",
+            currencySymbol = currencySymbol
+        )
     }
 }
 
@@ -712,7 +707,7 @@ private fun ExtraRow(
         )
         OutlinedTextField(
             value = amount,
-            onValueChange = onAmountChange,
+            onValueChange = { onAmountChange(InputValidator.filterDecimal(it)) },
             label = { Text("${currencySymbol}bedrag") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
@@ -722,89 +717,6 @@ private fun ExtraRow(
         Switch(
             checked = enabled,
             onCheckedChange = onEnabledChange
-        )
-    }
-}
-
-@Composable
-private fun CollapsibleHeader(
-    title: String,
-    expanded: Boolean,
-    onToggle: () -> Unit
-) {
-    Surface(
-        onClick = onToggle,
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium
-            )
-            Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "Inklappen" else "Uitklappen"
-            )
-        }
-    }
-}
-
-@Composable
-private fun PreviewCard(
-    profile: SalaryProfile,
-    currency: Currency
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Overzicht",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            PreviewRow("Bruto ${profile.paymentPeriodLabel}", "${currency.symbol}${"%.2f".format(profile.grossPerPeriod)}")
-            PreviewRow("Netto ${profile.paymentPeriodLabel}", "${currency.symbol}${"%.2f".format(profile.netPerPeriod)}")
-            PreviewRow("Bruto per jaar", "${currency.symbol}${"%.2f".format(profile.totalAnnualGross)}")
-            PreviewRow("Belastingpercentage", "${"%.1f".format(profile.effectiveTaxRate * 100)}%")
-            if (profile.age > 0) {
-                PreviewRow("Jaren tot pensioen", "${(profile.retirementAge - profile.age).coerceAtLeast(0)}")
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
         )
     }
 }
